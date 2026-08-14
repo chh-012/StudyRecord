@@ -2,7 +2,13 @@
 
 > 目标：AI Agent 应用开发 + 后端开发（2026/08/15 启动，5 个月学习计划）
 > 计划文档：《AI-Agent后端学习路线-优化版-2026-08-15.md》
-> 仓库结构：`notes/` 每日学习笔记 ｜ `practice/` 每日练习 ｜ `projects/` 里程碑项目
+> 仓库结构：`notes/` 每日学习笔记（**自己写**） ｜ `practice/` 每日练习 ｜ `projects/` 里程碑项目
+
+## 📌 使用说明（重要）
+
+- **`notes/week01/` 里的 md 是空白引导模板**：只给了"要学什么 + 引导问题"，内容全部由你自己写——写笔记的过程就是学习本身。
+- **`_reference/week01/` 是参考答案**（已加入 `.gitignore`，**不会推送**，仅本机对照用）：每篇学完、自己写完后再打开对照，查漏补缺。**不要先看答案再抄。**
+- 每天结束：`git add . && git commit -m "docs(notes): dayNN 主题" && git push`
 
 ## 进度表
 
@@ -27,12 +33,12 @@
 
 ### week01（8/15 – 8/21）：Python 工程化 + MySQL 基础
 
-| Day | 主题 | 深度 |
-|:--:|------|:--:|
-| 01 | [装饰器与函数进阶](notes/week01/day01-装饰器.md) | L3 |
-| 02 | [生成器与迭代器](notes/week01/day02-生成器.md) | L3 |
-| 03 | [上下文管理器 + 类型提示 + dataclass](notes/week01/day03-上下文类型dataclass.md) | L2→L3 |
-| 04 | [异步 + pytest](notes/week01/day04-异步测试.md) | L2 |
-| 05 | [FastAPI + 工具链 + Git 规范](notes/week01/day05-FastAPI.md) | L2 |
-| 06 | [MySQL 索引](notes/week01/day06-MySQL索引.md) | L3 |
-| 07 | [MySQL 事务 + SQL 优化](notes/week01/day07-MySQL事务.md) | L3 |
+| Day | 主题 | 深度 | 状态 |
+|:--:|------|:--:|:--:|
+| 01 | 装饰器与函数进阶 | L3 | ⬜ |
+| 02 | 生成器与迭代器 | L3 | ⬜ |
+| 03 | 上下文管理器 + 类型提示 + dataclass | L2→L3 | ⬜ |
+| 04 | 异步 + pytest | L2 | ⬜ |
+| 05 | FastAPI + 工具链 + Git 规范 | L2 | ⬜ |
+| 06 | MySQL 索引 | L3 | ⬜ |
+| 07 | MySQL 事务 + SQL 优化 | L3 | ⬜ |
