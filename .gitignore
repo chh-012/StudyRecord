@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.env.venv/
+
+# 密钥（绝不允许提交！）
+.env
+.env.*
+
+# 数据库 / 日志
+*.db
+*.sqlite3
+*.log
+slow-query.log
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.swp
+
+# 系统
+.DS_Store
+Thumbs.db
