@@ -24,6 +24,3 @@ slow-query.log
 .DS_Store
 Thumbs.db
 _reference/
-
-# 密钥目录（LLM API Key 等，绝不提交）
-Key/
