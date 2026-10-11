@@ -1,11 +1,13 @@
 """FastAPI 入口：路由、依赖注入、统一响应与异常处理。"""
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -48,7 +50,50 @@ app = FastAPI(
     description="Week2 项目1：FastAPI + SQLAlchemy + MySQL + Redis",
     version="1.0.0",
     lifespan=lifespan,
+    # 关闭默认文档页：其静态资源默认走 jsdelivr CDN，国内网络常超时导致白屏，
+    # 下面自定义 /docs 与 /redoc，改用可访问的 unpkg 源
+    docs_url=None,
+    redoc_url=None,
 )
+
+# 文档页静态资源地址（unpkg 在本机实测可达，jsdelivr 不可达）
+SWAGGER_JS_URL = "https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"
+SWAGGER_CSS_URL = "https://unpkg.com/swagger-ui-dist@5/swagger-ui.css"
+SWAGGER_FAVICON_URL = "https://unpkg.com/swagger-ui-dist@5/favicon-32x32.png"
+REDOC_JS_URL = "https://unpkg.com/redoc@next/bundles/redoc.standalone.js"
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    """Swagger UI 文档页（静态资源走 unpkg，避免默认 CDN 不可达导致白屏）。"""
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - Swagger UI",
+        swagger_js_url=SWAGGER_JS_URL,
+        swagger_css_url=SWAGGER_CSS_URL,
+        swagger_favicon_url=SWAGGER_FAVICON_URL,
+    )
+
+
+@app.get("/redoc", include_in_schema=False)
+async def custom_redoc_html():
+    """ReDoc 文档页（同样改走 unpkg 源）。"""
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - ReDoc",
+        redoc_js_url=REDOC_JS_URL,
+        redoc_favicon_url=SWAGGER_FAVICON_URL,
+    )
+
+
+# 教学用前端页面：单文件 HTML，样式与脚本全部内联，不依赖任何外部 CDN
+STATIC_DIR = Path(__file__).parent / "static"
+
+
+@app.get("/", include_in_schema=False)
+async def index_page():
+    """返回教学演示页面（可直观看到请求经过的每一层）。"""
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 def get_db():
@@ -107,6 +152,7 @@ def list_notes(
 # 注意：/search 路径必须先于 /{note_id} 声明
 @app.get("/api/notes/search", response_model=ApiResponse[list[NoteOut]])
 def search_notes(
+    response: Response,
     q: str | None = Query(None, max_length=100),
     tag: str | None = Query(None, max_length=50),
     db: Session = Depends(get_db),
@@ -118,11 +164,14 @@ def search_notes(
 
     cached = cache.get_search(q or "", tag)
     if cached is not None:
+        # 教学用：告诉前端这次是命中了缓存（没查数据库）
+        response.headers["X-Cache"] = "HIT"
         return ApiResponse(data=cached)
 
     notes = crud.search_notes(db, q, tag)
     results = [NoteOut.model_validate(n).model_dump(mode="json") for n in notes]
     cache.set_search(q or "", tag, results)
+    response.headers["X-Cache"] = "MISS"
     return ApiResponse(data=results)
 
 

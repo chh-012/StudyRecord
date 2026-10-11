@@ -3,8 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
-app=FastAPI(title="Todo 内存CRUD接口",
-            description="简易待办接口，数据存在内存，重启丢失")
+app=FastAPI(title="Todo 内存CRUD接口",description="简易待办接口，数据存在内存，重启丢失")
 
 todo_db=[
     {"id":1,"title":"学习FastAPI","content": "完成CRUD接口", "is_done": False}   

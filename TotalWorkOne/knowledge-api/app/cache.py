@@ -3,6 +3,8 @@ import json
 import logging
 
 import redis
+from redis.backoff import NoBackoff
+from redis.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,14 @@ class RedisCache:
     KEY_PREFIX = "notes:search:"
     EMPTY = "EMPTY"
 
+    # 连接/读写超时（秒），并关闭自动重试。
+    # 必须显式设置：redis-py 默认既无超时、又会自动重试 3 次，
+    # Redis 未启动时单次操作要卡 10 秒以上（本机实测 9~15 秒），
+    # 接口会直接超时——那样"故障降级"就形同虚设。
+    # 本机实测：超时 1 秒 + 不重试 → 约 1 秒内失败并降级，请求不受影响。
+    SOCKET_TIMEOUT = 1.0
+    NO_RETRY = Retry(NoBackoff(), 0)
+
     def __init__(
         self,
         host: str,
@@ -28,7 +38,15 @@ class RedisCache:
         client: redis.Redis | None = None,
     ):
         # client 参数用于测试注入 FakeRedis；生产环境为 None 时惰性连接真 Redis
-        self._client = client or redis.Redis(host=host, port=port, db=db, decode_responses=True)
+        self._client = client or redis.Redis(
+            host=host,
+            port=port,
+            db=db,
+            decode_responses=True,
+            socket_connect_timeout=self.SOCKET_TIMEOUT,
+            socket_timeout=self.SOCKET_TIMEOUT,
+            retry=self.NO_RETRY,
+        )
         self._search_ttl = search_ttl
         self._empty_ttl = empty_ttl
 

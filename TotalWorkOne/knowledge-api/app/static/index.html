@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识管理系统 · 全链路演示</title>
+<style>
+  /* ============ 基础样式（全部内联，不依赖任何外部 CDN） ============ */
+  :root{
+    --blue:#2563eb;   --blue-bg:#eff6ff;
+    --green:#16a34a;  --green-bg:#f0fdf4;
+    --orange:#ea580c; --orange-bg:#fff7ed;
+    --red:#dc2626;    --red-bg:#fef2f2;
+    --gray:#9ca3af;   --gray-bg:#f3f4f6;
+    --border:#e5e7eb; --text:#111827;   --muted:#6b7280;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#f9fafb; color:var(--text); line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  }
+  a{color:var(--blue); text-decoration:none;}
+  a:hover{text-decoration:underline;}
+
+  header{
+    background:#fff; border-bottom:1px solid var(--border);
+    padding:14px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  header h1{font-size:17px; margin:0; font-weight:600;}
+  header .links{margin-left:auto; font-size:13px; color:var(--muted);}
+  header .links a{margin-left:14px;}
+
+  .wrap{max-width:1280px; margin:0 auto; padding:18px 20px 60px;}
+  .tip{
+    background:var(--blue-bg); border:1px solid #bfdbfe; color:#1e40af;
+    padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px;
+  }
+  .grid{display:grid; grid-template-columns:1.45fr 1fr; gap:18px; align-items:start;}
+  @media (max-width:980px){ .grid{grid-template-columns:1fr;} }
+
+  .card{background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px;}
+  .card h2{font-size:14px; margin:0 0 12px; font-weight:600; color:var(--muted); letter-spacing:.03em;}
+
+  /* ---- 操作区 ---- */
+  .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  input[type=text], textarea{
+    border:1px solid var(--border); border-radius:6px; padding:7px 10px;
+    font-size:13px; font-family:inherit; outline:none; background:#fff; color:var(--text);
+  }
+  input[type=text]:focus, textarea:focus{border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-bg);}
+  #q{flex:1; min-width:140px;}  #tag{width:130px;}
+  textarea{width:100%; min-height:76px; resize:vertical;}
+  button{
+    border:1px solid var(--border); background:#fff; color:var(--text);
+    border-radius:6px; padding:7px 13px; font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  button:hover{background:var(--gray-bg);}
+  button.primary{background:var(--blue); border-color:var(--blue); color:#fff;}
+  button.primary:hover{background:#1d4ed8;}
+  button.danger{color:var(--red); border-color:#fecaca;}
+  button.danger:hover{background:var(--red-bg);}
+  button.small{padding:4px 10px; font-size:12px;}
+
+  /* ---- 笔记卡片 ---- */
+  .note{border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:10px;}
+  .note .t{font-weight:600; font-size:14px;}
+  .note .c{font-size:13px; color:#374151; white-space:pre-wrap; margin:5px 0 8px; word-break:break-word;}
+  .note .meta{font-size:11.5px; color:var(--gray); display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
+  .tag{
+    display:inline-block; background:var(--blue-bg); color:var(--blue);
+    border-radius:99px; padding:1px 9px; font-size:11.5px; cursor:pointer; margin-right:4px;
+  }
+  .tag:hover{background:#dbeafe;}
+  .empty{color:var(--gray); font-size:13px; padding:22px 0; text-align:center;}
+
+  /* ---- 请求链路面板 ---- */
+  .traceHead{font-size:12px; font-family:Consolas,Monaco,monospace; background:#0f172a; color:#cbd5e1;
+             border-radius:6px; padding:8px 10px; margin-bottom:12px; word-break:break-all;}
+  .traceHead .ok{color:#4ade80; font-weight:700;}
+  .traceHead .bad{color:#f87171; font-weight:700;}
+  .step{
+    display:flex; gap:10px; padding:9px 0; border-left:2px solid var(--border);
+    padding-left:12px; margin-left:5px; position:relative;
+    transition:opacity .28s ease, transform .28s ease;
+  }
+  .step::before{
+    content:''; position:absolute; left:-6px; top:15px; width:10px; height:10px;
+    border-radius:50%; background:#fff; border:2px solid var(--border);
+  }
+  .step.s-run::before{border-color:var(--blue);}   .step.s-hit::before{border-color:var(--green);}
+  .step.s-miss::before{border-color:var(--orange);} .step.s-skip::before{border-color:var(--gray);}
+  .step.s-err::before{border-color:var(--red);}
+  .step .body{flex:1; min-width:0;}
+  .step .name{font-size:13px; font-weight:600;}
+  .step .file{font-size:11px; color:var(--gray); font-family:Consolas,Monaco,monospace;}
+  .step .desc{font-size:12px; color:var(--muted); margin-top:2px;}
+  .step .sub{font-size:12px; color:#374151; margin-top:4px; padding-left:2px;}
+  .step.s-skip{opacity:.5;}
+  .badge{font-size:11px; border-radius:99px; padding:1px 8px; margin-left:6px; white-space:nowrap;}
+  .b-run{background:var(--blue-bg); color:var(--blue);}
+  .b-hit{background:var(--green-bg); color:var(--green);}
+  .b-miss{background:var(--orange-bg); color:var(--orange);}
+  .b-skip{background:var(--gray-bg); color:var(--gray);}
+  .b-err{background:var(--red-bg); color:var(--red);}
+  .legend{font-size:11.5px; color:var(--gray); margin-top:12px; border-top:1px dashed var(--border); padding-top:10px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>知识管理系统 · 全链路演示</h1>
+  <div class="links">
+    接口文档：<a href="/docs" target="_blank">Swagger /docs</a>
+    <a href="/redoc" target="_blank">ReDoc /redoc</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tip">
+    <b>怎么看这个页面：</b>右侧会显示你每次操作的请求，<b>真实经过</b>了哪些环节、每一层做了什么。<br>
+    建议试一下：① 在搜索框输入关键词连搜 <b>两次</b>，看第二次的缓存怎么「跳过」数据库；② 什么都不填直接点搜索，看校验层怎么拦截。
+  </div>
+
+  <div class="grid">
+    <!-- ==================== 左栏：操作 + 列表 ==================== -->
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <h2>搜索 / 筛选</h2>
+        <div class="row">
+          <input type="text" id="q" placeholder="关键词（搜标题和内容）">
+          <input type="text" id="tag" placeholder="标签">
+          <button class="primary" onclick="doSearch()">搜索</button>
+          <button onclick="resetSearch()">重置</button>
+          <button onclick="openCreate()">+ 新建笔记</button>
+        </div>
+      </div>
+
+      <div class="card" id="formCard" style="margin-bottom:16px; display:none;">
+        <h2 id="formTitle">新建笔记</h2>
+        <div style="margin-bottom:8px;">
+          <input type="text" id="f-title" placeholder="标题（必填）" style="width:100%;">
+        </div>
+        <div style="margin-bottom:8px;">
+          <textarea id="f-content" placeholder="内容（可空）"></textarea>
+        </div>
+        <div style="margin-bottom:10px;">
+          <input type="text" id="f-tags" placeholder="标签，用逗号分隔，例如：python, web" style="width:100%;">
+        </div>
+        <div class="row">
+          <button class="primary" onclick="submitForm()">保存</button>
+          <button onclick="closeForm()">取消</button>
+          <span id="formMsg" style="font-size:12px; color:var(--red);"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>笔记列表</h2>
+        <div id="noteList"><div class="empty">加载中…</div></div>
+        <div class="row" style="margin-top:12px; justify-content:space-between;">
+          <span id="pageInfo" style="font-size:12px; color:var(--gray);"></span>
+          <span>
+            <button class="small" onclick="prevPage()">上一页</button>
+            <button class="small" onclick="nextPage()">下一页</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 右栏：请求链路 ==================== -->
+    <div class="card">
+      <h2>请求链路（实时）</h2>
+      <div class="traceHead" id="traceHead">等待操作…</div>
+      <div id="traceSteps">
+        <div class="empty" style="text-align:left; padding:8px 0;">
+          执行一次操作（搜索 / 新建 / 编辑 / 删除），这里会一步步显示请求经过的每一层。
+        </div>
+      </div>
+      <div class="legend">
+        <b>图例：</b>
+        <span class="badge b-run">执行</span> 本层被真实执行 ·
+        <span class="badge b-hit">命中缓存</span> 直接返回，跳过数据库 ·
+        <span class="badge b-miss">未命中</span> 需往下查库 ·
+        <span class="badge b-skip">跳过</span> 本次未执行 ·
+        <span class="badge b-err">拦截 422</span> 参数不合格
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   1) 链路定义：每一层「是什么文件、干什么用」
+   —— 这些说明就是你在项目里对应文件的职责，看代码时可以一一对上
+   ===================================================================== */
+const LAYERS = [
+  {key:'browser',  name:'① 浏览器页面',   file:'index.html',     desc:'发起 fetch 请求；拿到响应后把数据渲染成页面'},
+  {key:'main',     name:'② FastAPI 路由', file:'app/main.py',    desc:'接收 HTTP 请求，按路径找到对应处理函数'},
+  {key:'schemas',  name:'③ Pydantic 校验',file:'app/schemas.py', desc:'检查参数格式是否合法；不合法立刻拦下并返回 422'},
+  {key:'cache',    name:'④ Redis 缓存',   file:'app/cache.py',   desc:'先查缓存：命中就直接返回，跳过下面的数据库'},
+  {key:'crud',     name:'⑤ 数据库操作',   file:'app/crud.py',    desc:'用 SQLAlchemy 生成 SQL，对 MySQL 做增删改查'},
+  {key:'db',       name:'⑥ MySQL / Redis',file:'存储层',         desc:'MySQL 负责持久保存数据；Redis 负责缓存加速'},
+  {key:'response', name:'⑦ 统一响应',     file:'ApiResponse',    desc:'包装成 {code, message, data} 返回给浏览器'},
+];
+
+/* 每种操作，各层的状态：run 执行 / hit 命中缓存 / miss 未命中 / invalidate 清缓存 / skip 跳过 / err 拦截 */
+const FLOWS = {
+  // 列表查询：不经过缓存
+  list: {main:'run', schemas:'run', cache:'skip', crud:'run', db:'run', response:'run', sub:{}},
+
+  // 搜索未命中：查库 + 写回缓存
+  searchMiss: {main:'run', schemas:'run', cache:'miss', crud:'run', db:'run', response:'run',
+    sub:{cache:['查缓存 → 未命中 ❌', '把查库结果写回 Redis（过期时间 300 秒）']}},
+
+  // 搜索命中：crud 和 MySQL 被跳过（关键教学点）
+  searchHit: {main:'run', schemas:'run', cache:'hit', crud:'skip', db:'skip', response:'run',
+    sub:{cache:['查缓存 → 命中 ✅'], crud:['被缓存命中跳过，本次没有执行'], db:['被缓存命中跳过，本次没有执行']}},
+
+  // 写操作（新建/编辑/删除）：写库 + 清空缓存
+  write: {main:'run', schemas:'run', cache:'invalidate', crud:'run', db:'run', response:'run',
+    sub:{cache:['笔记数据变了 → 清空搜索缓存，保证下次搜到最新数据']}},
+
+  // 参数不合格：校验层直接拦截
+  invalid: {main:'run', schemas:'err', cache:'skip', crud:'skip', db:'skip', response:'run',
+    sub:{schemas:['参数不合法 → 直接返回 422，后面的流程全部不执行']}},
+};
+
+const BADGE = {
+  run:        ['执行', 'b-run'],
+  hit:        ['命中缓存 ⚡', 'b-hit'],
+  miss:       ['未命中', 'b-miss'],
+  invalidate: ['清空缓存', 'b-miss'],
+  skip:       ['跳过', 'b-skip'],
+  err:        ['拦截 422', 'b-err'],
+};
+
+/* =====================================================================
+   2) 渲染请求链路面板
+   ===================================================================== */
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderTrace(flowKey, meta){
+  const flow = FLOWS[flowKey] || FLOWS.list;
+  const ok = meta.status >= 200 && meta.status < 300;
+
+  // 顶部：本次请求的原始信息
+  document.getElementById('traceHead').innerHTML =
+    `${esc(meta.method)} ${esc(meta.path)} → ` +
+    `<span class="${ok ? 'ok' : 'bad'}">${meta.status}</span> · 耗时 ${meta.ms} ms`;
+
+  const box = document.getElementById('traceSteps');
+  box.innerHTML = '';
+  const nodes = [];
+
+  LAYERS.forEach(layer => {
+    const status = layer.key === 'browser' ? 'run' : (flow[layer.key] || 'skip');
+    const [label, cls] = BADGE[status];
+    const subs = (flow.sub && flow.sub[layer.key]) || [];
+
+    const el = document.createElement('div');
+    el.className = 'step s-' + status;
+    el.innerHTML =
+      `<div class="body">
+         <div class="name">${esc(layer.name)}<span class="badge ${cls}">${esc(label)}</span></div>
+         <div class="file">${esc(layer.file)}</div>
+         <div class="desc">${esc(layer.desc)}</div>
+         ${subs.map(s => `<div class="sub">↳ ${esc(s)}</div>`).join('')}
+       </div>`;
+    box.appendChild(el);
+    nodes.push(el);
+  });
+
+  // 依次点亮，体现「顺序经过」的过程
+  nodes.forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(6px)';
+    setTimeout(() => { el.style.opacity = '1'; el.style.transform = 'none'; }, i * 110);
+  });
+}
+
+/* =====================================================================
+   3) 统一请求封装：记录耗时，并读取响应头 X-Cache（后端告诉我们缓存是否命中）
+   ===================================================================== */
+async function api(path, options = {}){
+  const t0 = performance.now();
+  const res = await fetch(path, options);
+  const body = await res.json().catch(() => null);
+  const ms = Math.round(performance.now() - t0);
+  return {res, body, ms, cache: res.headers.get('X-Cache')};
+}
+
+/* =====================================================================
+   4) 笔记列表 / 搜索
+   ===================================================================== */
+let state = {page:1, pageSize:5, total:0, tag:'', keyword:''};
+
+async function loadNotes(){
+  const p = new URLSearchParams({page: state.page, page_size: state.pageSize});
+  if (state.tag) p.set('tag', state.tag);
+
+  const {res, body, ms} = await api('/api/notes?' + p.toString());
+  renderTrace('list', {method:'GET', path:'/api/notes?' + p.toString(), status:res.status, ms});
+
+  if (body && body.code === 0){
+    state.total = body.data.total;
+    renderNotes(body.data.items, '共 ' + body.data.total + ' 条');
+  } else {
+    document.getElementById('noteList').innerHTML = '<div class="empty">加载失败</div>';
+  }
+}
+
+async function doSearch(){
+  const q = document.getElementById('q').value.trim();
+  const tag = document.getElementById('tag').value.trim();
+  const p = new URLSearchParams();
+  if (q) p.set('q', q);
+  if (tag) p.set('tag', tag);
+  const path = '/api/notes/search' + (p.toString() ? '?' + p.toString() : '');
+
+  const {res, body, ms, cache} = await api(path);
+
+  // 按真实结果选择要展示的链路
+  if (res.status === 422){
+    renderTrace('invalid', {method:'GET', path, status:res.status, ms});
+    document.getElementById('noteList').innerHTML =
+      '<div class="empty">校验层拦截了这次请求（q 和 tag 至少填一个）</div>';
+    return;
+  }
+  renderTrace(cache === 'HIT' ? 'searchHit' : 'searchMiss',
+              {method:'GET', path, status:res.status, ms});
+
+  const items = (body && body.data) || [];
+  const hitTxt = cache === 'HIT' ? '（来自缓存 ⚡）' : '（来自数据库）';
+  renderNotes(items, '搜索结果 ' + items.length + ' 条 ' + hitTxt);
+}
+
+function resetSearch(){
+  document.getElementById('q').value = '';
+  document.getElementById('tag').value = '';
+  state.tag = '';
+  state.keyword = '';
+  state.page = 1;
+  loadNotes();
+}
+
+function filterByTag(tag){
+  state.tag = tag;
+  state.page = 1;
+  document.getElementById('tag').value = tag;
+  loadNotes();
+}
+
+function prevPage(){ if (state.page > 1){ state.page--; loadNotes(); } }
+function nextPage(){
+  const maxPage = Math.max(1, Math.ceil(state.total / state.pageSize));
+  if (state.page < maxPage){ state.page++; loadNotes(); }
+}
+
+function renderNotes(items, info){
+  const box = document.getElementById('noteList');
+  document.getElementById('pageInfo').textContent = info || '';
+  if (!items || !items.length){
+    box.innerHTML = '<div class="empty">没有数据</div>';
+    return;
+  }
+  box.innerHTML = items.map(n => `
+    <div class="note">
+      <div class="t">${esc(n.title)}</div>
+      ${n.content ? `<div class="c">${esc(n.content)}</div>` : ''}
+      <div class="meta">
+        <span>ID ${n.id}</span>
+        <span>更新于 ${esc(String(n.updated_at).replace('T',' ').slice(0,19))}</span>
+        <span>${(n.tags || []).map(t => `<span class="tag" onclick="filterByTag('${esc(t)}')">${esc(t)}</span>`).join('')}</span>
+        <span style="margin-left:auto;">
+          <button class="small" onclick='openEdit(${JSON.stringify(n)})'>编辑</button>
+          <button class="small danger" onclick="removeNote(${n.id})">删除</button>
+        </span>
+      </div>
+    </div>`).join('');
+}
+
+/* =====================================================================
+   5) 新建 / 编辑 / 删除
+   ===================================================================== */
+let editingId = null;
+
+function openCreate(){
+  editingId = null;
+  document.getElementById('formTitle').textContent = '新建笔记';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-content').value = '';
+  document.getElementById('f-tags').value = '';
+  document.getElementById('formMsg').textContent = '';
+  document.getElementById('formCard').style.display = 'block';
+}
+
+function openEdit(note){
+  editingId = note.id;
+  document.getElementById('formTitle').textContent = '编辑笔记（ID ' + note.id + '）';
+  document.getElementById('f-title').value = note.title || '';
+  document.getElementById('f-content').value = note.content || '';
+  document.getElementById('f-tags').value = (note.tags || []).join(', ');
+  document.getElementById('formMsg').textContent = '';
+  document.getElementById('formCard').style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function closeForm(){
+  document.getElementById('formCard').style.display = 'none';
+  editingId = null;
+}
+
+function parseTags(){
+  return document.getElementById('f-tags').value
+    .split(/[,，\s]+/).map(s => s.trim()).filter(Boolean);
+}
+
+async function submitForm(){
+  const payload = {
+    title: document.getElementById('f-title').value.trim(),
+    content: document.getElementById('f-content').value,
+    tags: parseTags(),
+  };
+  if (!payload.title){
+    document.getElementById('formMsg').textContent = '标题不能为空';
+    return;
+  }
+
+  const isEdit = editingId !== null;
+  const path = isEdit ? '/api/notes/' + editingId : '/api/notes';
+  const {res, body, ms} = await api(path, {
+    method: isEdit ? 'PUT' : 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  });
+
+  if (res.status === 422){
+    renderTrace('invalid', {method: isEdit ? 'PUT' : 'POST', path, status:res.status, ms});
+    document.getElementById('formMsg').textContent = '参数校验失败，请看右侧链路';
+    return;
+  }
+  renderTrace('write', {method: isEdit ? 'PUT' : 'POST', path, status:res.status, ms});
+
+  if (body && body.code === 0){
+    closeForm();
+    state.page = 1;
+    state.tag = '';
+    document.getElementById('tag').value = '';
+    loadNotes();
+  } else {
+    document.getElementById('formMsg').textContent = (body && body.message) || '保存失败';
+  }
+}
+
+async function removeNote(id){
+  if (!confirm('确定删除 ID ' + id + ' 这条笔记吗？')) return;
+  const path = '/api/notes/' + id;
+  const {res, body, ms} = await api(path, {method:'DELETE'});
+  renderTrace('write', {method:'DELETE', path, status:res.status, ms});
+  if (body && body.code === 0) loadNotes();
+  else alert((body && body.message) || '删除失败');
+}
+
+/* 首次进入：加载列表 */
+loadNotes();
+</script>
+</body>
+</html>
